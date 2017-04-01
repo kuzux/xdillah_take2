@@ -21,7 +21,7 @@ CFLAGS:=$(CFLAGS) -D__is_xdillah_kernel -DXDILLAH_VERSION=\""$(XDILLAH_VERSION)"
 	-DXDILLAH_AUTHOR=\"$(XDILLAH_AUTHOR)\" -Iinclude -I../libc/include
 CPPFLAGS:=$(CPPFLAGS)
 LDFLAGS:=$(LDFLAGS)
-LIBS:=$(LIBS) -nostdlib -lk -lgcc
+LIBS:=$(LIBS) -nostdlib
 
 ARCHDIR:=arch/x86_64
 
@@ -35,7 +35,7 @@ LIBS:=$(LIBS) $(KERNEL_ARCH_LIBS)
 OBJS:=\
 $(KERNEL_ARCH_OBJS) \
 
-all: dummy.txt
+all: build/kernel
 
 install: install-headers install-kernel
  
@@ -43,7 +43,13 @@ install-headers:
 	mkdir -p $(DESTDIR)$(INCLUDEDIR)
 	cp -Rv include/ $(DESTDIR)$(INCLUDEDIR)
 
-dummy.txt: 
-	echo "Dummy"
+build/arch/%.o: $(ARCHDIR)/%.asm
+	mkdir -p build/arch
+	$(NASM) -f elf64 $< -o $@
 
-install-kernel: dummy.txt
+build/kernel: $(OBJS) $(ARCHDIR)/linker.ld
+	$(CC) -T $(ARCHDIR)/linker.ld -n -o $@ $(CFLAGS) $(LDFLAGS) $(OBJS) $(LIBS)
+
+install-kernel: build/kernel
+	mkdir -p $(DESTDIR)$(BOOTDIR)
+	cp build/kernel $(DESTDIR)$(BOOTDIR)
